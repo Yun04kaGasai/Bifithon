@@ -1,0 +1,25 @@
+# Example 1: Basic Math Operations
+import bifMath
+
+def main():
+    # Basic arithmetic
+    x = 10
+    y = 5
+    
+    print("Addition:", x + y)
+    print("Subtraction:", x - y)
+    print("Multiplication:", x * y)
+    print("Division:", x / y)
+    
+    # Math functions
+    print("Square root of 16:", bifMath.sqrt(16))
+    print("2 to the power of 8:", bifMath.pow(2, 8))
+    print("Sin of PI/2:", bifMath.sin(bifMath.PI / 2))
+    print("Cos of 0:", bifMath.cos(0))
+    
+    # Constants
+    print("PI:", bifMath.PI)
+    print("E:", bifMath.E)
+    
+    # Factorial
+    print("Factorial of 5:", bifMath.factorial(5))
