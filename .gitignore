@@ -9,7 +9,10 @@
 
 # Generated C++ files from Bifithon
 bifithon/examples/*.cpp
-*.cpp
+
+# Compiled executables from examples
+bifithon/examples/example*
+!bifithon/examples/*.bif
 
 # Python cache
 __pycache__/

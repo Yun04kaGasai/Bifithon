@@ -246,19 +246,29 @@ class BifithonCompiler:
         if start >= 6 and end > start:
             args_str = stripped[start:end]
             
-            # Split by comma but be careful with nested function calls
+            # Split by comma but be careful with nested function calls and strings
             args = []
             current_arg = ""
             paren_depth = 0
+            in_string = False
+            string_char = None
             
-            for char in args_str:
-                if char == '(' :
+            for i, char in enumerate(args_str):
+                if char in ('"', "'") and (i == 0 or args_str[i-1] != '\\'):
+                    if not in_string:
+                        in_string = True
+                        string_char = char
+                    elif char == string_char:
+                        in_string = False
+                        string_char = None
+                    current_arg += char
+                elif char == '(' and not in_string:
                     paren_depth += 1
                     current_arg += char
-                elif char == ')':
+                elif char == ')' and not in_string:
                     paren_depth -= 1
                     current_arg += char
-                elif char == ',' and paren_depth == 0:
+                elif char == ',' and paren_depth == 0 and not in_string:
                     args.append(current_arg.strip())
                     current_arg = ""
                 else:
@@ -298,7 +308,13 @@ class BifithonCompiler:
         """Convert Python expression to C++"""
         expr = expr.strip()
         
-        # Boolean operators
+        # Don't convert operators inside strings
+        # Simple check: if the expression is a string literal, return as-is
+        if (expr.startswith('"') and expr.endswith('"')) or \
+           (expr.startswith("'") and expr.endswith("'")):
+            return expr
+        
+        # Boolean operators (only outside of strings)
         expr = expr.replace(' and ', ' && ')
         expr = expr.replace(' or ', ' || ')
         expr = expr.replace(' not ', ' !')
