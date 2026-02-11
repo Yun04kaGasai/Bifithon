@@ -71,3 +71,20 @@ python tools/bifc.py путь\к\файлу.bif --run
 ```
 python ide\bifide.py
 ```
+
+## Установка
+
+Скрипты установки запускаются из корня репозитория.
+
+### Windows
+
+```
+\install.ps1
+```
+
+### Linux (Debian/Arch)
+
+```
+chmod +x install.sh
+./install.sh
+```

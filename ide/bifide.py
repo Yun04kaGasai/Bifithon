@@ -15,14 +15,20 @@ def run_compiler(file_path, output_text, status_var, source_text):
     repo_root = get_repo_root()
     compiler_path = os.path.join(repo_root, "tools", "bifc.py")
     compiler_exe = os.path.join(repo_root, "tools", "bifc.exe")
+    compiler_bin = os.path.join(repo_root, "tools", "bifc")
 
-    if not os.path.isfile(compiler_path) and not os.path.isfile(compiler_exe):
-        messagebox.showerror("Bifithon", "Компилятор не найден: tools/bifc.py или tools/bifc.exe")
+    if not os.path.isfile(compiler_path) and not os.path.isfile(compiler_exe) and not os.path.isfile(compiler_bin):
+        messagebox.showerror(
+            "Bifithon",
+            "Компилятор не найден: tools/bifc.py, tools/bifc.exe или tools/bifc",
+        )
         status_var.set("Компилятор не найден")
         return
 
     if os.path.isfile(compiler_exe):
         command = [compiler_exe, file_path, "--run"]
+    elif os.path.isfile(compiler_bin):
+        command = [compiler_bin, file_path, "--run"]
     else:
         command = [sys.executable, compiler_path, file_path, "--run"]
     stdin_data = ""
