@@ -13,6 +13,8 @@ std::string bif_input(const std::string& prompt) {
 }
 
 int main() {
-    std::cout << 100.0 / 4328.0 << std::endl;
+    auto name = bif_input("Name: ");
+    std::cout << "Hello, " << std::endl;
+    std::cout << name << std::endl;
     return 0;
 }

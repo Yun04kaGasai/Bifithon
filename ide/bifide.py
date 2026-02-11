@@ -4,26 +4,41 @@ import sys
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
+from tkinter import simpledialog
 
 
 def get_repo_root():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def run_compiler(file_path, output_text, status_var):
+def run_compiler(file_path, output_text, status_var, source_text):
     repo_root = get_repo_root()
     compiler_path = os.path.join(repo_root, "tools", "bifc.py")
+    compiler_exe = os.path.join(repo_root, "tools", "bifc.exe")
 
-    if not os.path.isfile(compiler_path):
-        messagebox.showerror("Bifithon", "Компилятор не найден: tools/bifc.py")
+    if not os.path.isfile(compiler_path) and not os.path.isfile(compiler_exe):
+        messagebox.showerror("Bifithon", "Компилятор не найден: tools/bifc.py или tools/bifc.exe")
         status_var.set("Компилятор не найден")
         return
 
-    command = [sys.executable, compiler_path, file_path, "--run"]
+    if os.path.isfile(compiler_exe):
+        command = [compiler_exe, file_path, "--run"]
+    else:
+        command = [sys.executable, compiler_path, file_path, "--run"]
+    stdin_data = ""
+    if "input(" in source_text:
+        stdin_data = simpledialog.askstring(
+            "Ввод",
+            "Введите данные для input() (каждая строка — отдельный ввод):",
+        )
+        if stdin_data is None:
+            status_var.set("Запуск отменен")
+            return
     status_var.set("Выполнение...")
     result = subprocess.run(
         command,
         cwd=repo_root,
+        input=stdin_data,
         capture_output=True,
         text=True,
     )
@@ -166,7 +181,7 @@ def main():
         path = save_file()
         if not path:
             return
-        run_compiler(path, output, status_var)
+        run_compiler(path, output, status_var, editor.get("1.0", tk.END))
 
     open_button = tk.Button(toolbar, text="Открыть", command=open_file)
     open_button.pack(side=tk.LEFT, padx=6, pady=4)
