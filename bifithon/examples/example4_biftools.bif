@@ -1,0 +1,23 @@
+# Example 4: Using biftools
+import biftools
+
+def main():
+    # Note: This is a demonstration of what biftools offers
+    # Full implementation would require more complex C++ integration
+    
+    print("Using biftools for iteration:")
+    
+    # Range example
+    print("Range from 0 to 5:")
+    for i in range(5):
+        print(i)
+    
+    # This demonstrates the concept - actual implementation
+    # would involve C++ templates and iterators from biftools.h
+    
+    print("Biftools library provides:")
+    print("- Range iterators")
+    print("- Count generators")
+    print("- Cycle iterators")
+    print("- Combinations and permutations")
+    print("- Map, filter, zip functions")

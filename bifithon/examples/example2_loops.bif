@@ -1,0 +1,26 @@
+# Example 2: Loops and Iterators
+import biftools
+
+def main():
+    # Range loop
+    print("Numbers 0 to 9:")
+    for i in range(10):
+        print(i)
+    
+    # Range with start and end
+    print("Numbers 5 to 15:")
+    for i in range(5, 15):
+        print(i)
+    
+    # Range with step
+    print("Even numbers 0 to 20:")
+    for i in range(0, 20, 2):
+        print(i)
+    
+    # While loop
+    print("Countdown:")
+    count = 10
+    while count > 0:
+        print(count)
+        count = count - 1
+    print("Blast off!")
