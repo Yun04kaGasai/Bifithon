@@ -1,0 +1,10 @@
+import BIFtkinter
+
+win = BIFWindow("Demo", 400, 220)
+win.add_label("Name:", 10, 10, 80, 20)
+input_id = win.add_input(100, 8, 200, 24)
+button_id = win.add_button("OK", 10, 50, 80, 30)
+
+clicked = win.wait_for_click()
+if clicked == button_id:
+    print(win.get_input_text(input_id))
