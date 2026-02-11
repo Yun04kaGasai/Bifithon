@@ -1,0 +1,56 @@
+# Example 5: Calculator Program
+import bifMath
+
+def add(a, b):
+    return a + b
+
+def subtract(a, b):
+    return a - b
+
+def multiply(a, b):
+    return a * b
+
+def divide(a, b):
+    if b != 0:
+        return a / b
+    else:
+        return 0
+
+def power(a, b):
+    return bifMath.pow(a, b)
+
+def square_root(a):
+    if a >= 0:
+        return bifMath.sqrt(a)
+    else:
+        return 0.0
+
+def main():
+    print("Bifithon Calculator")
+    print("===================")
+    
+    x = 15
+    y = 3
+    
+    print("Numbers:", x, y)
+    print("Addition:", add(x, y))
+    print("Subtraction:", subtract(x, y))
+    print("Multiplication:", multiply(x, y))
+    print("Division:", divide(x, y))
+    print("Power:", power(x, 2))
+    print("Square root of", x, ":", square_root(x))
+    
+    print()
+    print("Circle calculations (radius = 5):")
+    radius = 5
+    area = bifMath.PI * radius * radius
+    circumference = 2 * bifMath.PI * radius
+    print("Area:", area)
+    print("Circumference:", circumference)
+    
+    print()
+    print("Trigonometry (45 degrees):")
+    angle = bifMath.radians(45)
+    print("Sin(45°):", bifMath.sin(angle))
+    print("Cos(45°):", bifMath.cos(angle))
+    print("Tan(45°):", bifMath.tan(angle))

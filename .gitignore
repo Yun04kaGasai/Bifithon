@@ -1,0 +1,33 @@
+# Compiled files
+*.o
+*.exe
+*.out
+*.app
+*.so
+*.dylib
+*.dll
+
+# Generated C++ files from Bifithon
+bifithon/examples/*.cpp
+*.cpp
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+/tmp/
+*.tmp
