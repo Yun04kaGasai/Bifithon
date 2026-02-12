@@ -8,3 +8,4 @@ button_id = win.add_button("OK", 10, 50, 80, 30)
 clicked = win.wait_for_click()
 if clicked == button_id:
     print(win.get_input_text(input_id))
+
