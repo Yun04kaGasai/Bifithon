@@ -4,33 +4,37 @@
 
 ## Компилятор
 
-Запуск компилятора для .bif файла:
-
-```
-python tools/bifc.py путь\к\файлу.bif
-```
-
-Или соберите C++ версию компилятора:
+Сборка C++ версии компилятора:
 
 ```
 g++ -std=c++17 -O2 tools\bifc.cpp -o tools\bifc.exe
 ```
 
-После сборки IDE будет автоматически использовать tools\bifc.exe.
+Linux:
+
+```
+g++ -std=c++17 -O2 tools/bifc.cpp -o tools/bifc
+```
 
 Компиляция и запуск:
 
 ```
-python tools/bifc.py путь\к\файлу.bif --run
+tools\bifc.exe путь\к\файлу.bif --run
+```
+
+Linux:
+
+```
+./tools/bifc путь/к/файлу.bif --run
 ```
 
 ### Поддерживаемый синтаксис (v1)
 
-- `print(ВЫРАЖЕНИЕ)`
+- `print(expr)`
 - `input(prompt)` возвращает строку
 - присваивание: `x = 5`
-- `if ВЫРАЖЕНИЕ:` / `else:`
-- `while ВЫРАЖЕНИЕ:`
+- `if expr:` / `else:`
+- `while expr:`
 - отступы 4 пробела
 - логические ключевые слова: `and`, `or`, `not`
 - деление всегда с плавающей точкой при `/`
@@ -66,10 +70,23 @@ python tools/bifc.py путь\к\файлу.bif --run
 
 ## IDE
 
+Сборка IDE (wxWidgets):
+
+```
+cmake -S ide -B ide\build
+cmake --build ide\build
+```
+
 Запуск редактора:
 
 ```
-python ide\bifide.py
+ide\build\bifide.exe
+```
+
+Linux:
+
+```
+ide/build/bifide
 ```
 
 ## Установка

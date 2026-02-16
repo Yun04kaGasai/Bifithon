@@ -51,6 +51,193 @@ std::string strip_comment(const std::string& line) {
     return out;
 }
 
+std::vector<std::string> split_top_level_args(const std::string& content) {
+    std::vector<std::string> args;
+    std::string current;
+    int depth = 0;
+    bool in_string = false;
+    char string_char = '\0';
+    bool escaped = false;
+
+    for (char ch : content) {
+        if (in_string) {
+            current.push_back(ch);
+            if (escaped) {
+                escaped = false;
+            } else if (ch == '\\') {
+                escaped = true;
+            } else if (ch == string_char) {
+                in_string = false;
+            }
+            continue;
+        }
+
+        if (ch == '"' || ch == '\'') {
+            in_string = true;
+            string_char = ch;
+            current.push_back(ch);
+            continue;
+        }
+
+        if (ch == '(') {
+            depth += 1;
+            current.push_back(ch);
+            continue;
+        }
+        if (ch == ')') {
+            depth -= 1;
+            current.push_back(ch);
+            continue;
+        }
+
+        if (ch == ',' && depth == 0) {
+            auto start = current.find_first_not_of(' ');
+            auto end = current.find_last_not_of(' ');
+            if (start != std::string::npos) {
+                args.push_back(current.substr(start, end - start + 1));
+            }
+            current.clear();
+            continue;
+        }
+
+        current.push_back(ch);
+    }
+
+    auto start = current.find_first_not_of(' ');
+    auto end = current.find_last_not_of(' ');
+    if (start != std::string::npos) {
+        args.push_back(current.substr(start, end - start + 1));
+    }
+
+    return args;
+}
+
+std::string rewrite_logic_functions(const std::string& expr) {
+    auto parse_call = [&](size_t start_index, std::string& content, size_t& end_index) {
+        int depth = 0;
+        bool in_string = false;
+        char string_char = '\0';
+        bool escaped = false;
+        size_t i = start_index;
+
+        while (i < expr.size()) {
+            char ch = expr[i];
+            if (in_string) {
+                if (escaped) {
+                    escaped = false;
+                } else if (ch == '\\') {
+                    escaped = true;
+                } else if (ch == string_char) {
+                    in_string = false;
+                }
+                ++i;
+                continue;
+            }
+
+            if (ch == '"' || ch == '\'') {
+                in_string = true;
+                string_char = ch;
+                ++i;
+                continue;
+            }
+
+            if (ch == '(') {
+                depth += 1;
+            } else if (ch == ')') {
+                depth -= 1;
+                if (depth == 0) {
+                    content = expr.substr(start_index + 1, i - start_index - 1);
+                    end_index = i;
+                    return true;
+                }
+            }
+            ++i;
+        }
+
+        return false;
+    };
+
+
+    std::string out;
+    bool in_string = false;
+    char string_char = '\0';
+    bool escaped = false;
+    size_t i = 0;
+
+    while (i < expr.size()) {
+        char ch = expr[i];
+        if (in_string) {
+            out.push_back(ch);
+            if (escaped) {
+                escaped = false;
+            } else if (ch == '\\') {
+                escaped = true;
+            } else if (ch == string_char) {
+                in_string = false;
+            }
+            ++i;
+            continue;
+        }
+
+        if (ch == '"' || ch == '\'') {
+            in_string = true;
+            string_char = ch;
+            out.push_back(ch);
+            ++i;
+            continue;
+        }
+
+        bool matched = false;
+        for (const std::string& name : {"and", "or", "not"}) {
+            std::string token = name + "(";
+            bool boundary = (i == 0 || !(std::isalnum(static_cast<unsigned char>(expr[i - 1])) || expr[i - 1] == '_'));
+            if (boundary && expr.compare(i, token.size(), token) == 0) {
+                std::string content;
+                size_t end_index = 0;
+                if (!parse_call(i + name.size(), content, end_index)) {
+                    break;
+                }
+                auto args = split_top_level_args(content);
+                if (name == "not" && args.size() == 1) {
+                    out += "(!(" + args[0] + "))";
+                } else if (name == "and" && args.size() >= 2) {
+                    out += "(";
+                    for (size_t a = 0; a < args.size(); ++a) {
+                        if (a > 0) {
+                            out += " && ";
+                        }
+                        out += "(" + args[a] + ")";
+                    }
+                    out += ")";
+                } else if (name == "or" && args.size() >= 2) {
+                    out += "(";
+                    for (size_t a = 0; a < args.size(); ++a) {
+                        if (a > 0) {
+                            out += " || ";
+                        }
+                        out += "(" + args[a] + ")";
+                    }
+                    out += ")";
+                } else {
+                    out += expr.substr(i, end_index - i + 1);
+                }
+                i = end_index + 1;
+                matched = true;
+                break;
+            }
+        }
+
+        if (matched) {
+            continue;
+        }
+
+        out.push_back(ch);
+        ++i;
+    }
+
+    return out;
+}
+
 std::string replace_keywords(const std::string& expr) {
     std::unordered_map<std::string, std::string> replacements = {
         {"and", "&&"},
@@ -366,7 +553,8 @@ std::string normalize_expression(
     const std::string& expr,
     const std::vector<std::string>& modules,
     const std::unordered_map<std::string, std::string>& imported_names) {
-    std::string out = replace_keywords(expr);
+    std::string out = rewrite_logic_functions(expr);
+    out = replace_keywords(out);
     out = replace_input_calls(out);
     if (!modules.empty()) {
         out = replace_module_access(out, modules);
@@ -506,6 +694,41 @@ TranspileResult transpile_bif(const std::vector<std::string>& lines) {
             continue;
         }
 
+        if (stripped.rfind("for ", 0) == 0 && stripped.back() == ':') {
+            std::string header = stripped.substr(4, stripped.size() - 5);
+            size_t in_pos = header.find(" in ");
+            if (in_pos == std::string::npos) {
+                throw ParseError{"Line " + std::to_string(lineno) + ": Invalid for-loop syntax."};
+            }
+            std::string name = header.substr(0, in_pos);
+            std::string iterable = header.substr(in_pos + 4);
+            name.erase(0, name.find_first_not_of(' '));
+            name.erase(name.find_last_not_of(' ') + 1);
+            iterable.erase(0, iterable.find_first_not_of(' '));
+            iterable.erase(iterable.find_last_not_of(' ') + 1);
+
+            if (!is_valid_identifier(name)) {
+                throw ParseError{"Line " + std::to_string(lineno) + ": Invalid variable name."};
+            }
+
+            auto items = split_top_level_args(iterable);
+            if (items.empty()) {
+                throw ParseError{"Line " + std::to_string(lineno) + ": Empty for-loop iterable."};
+            }
+
+            std::string joined;
+            for (size_t i = 0; i < items.size(); ++i) {
+                if (i > 0) {
+                    joined += ", ";
+                }
+                joined += normalize_expression(items[i], imports, imported_names);
+            }
+
+            out.push_back("for (auto " + name + " : std::vector<double>{" + joined + "}) {");
+            expect_indent = true;
+            continue;
+        }
+
         if (stripped.rfind("if ", 0) == 0 && stripped.back() == ':') {
             std::string expr = stripped.substr(3, stripped.size() - 4);
             expr.erase(expr.find_last_not_of(' ') + 1);
@@ -530,7 +753,25 @@ TranspileResult transpile_bif(const std::vector<std::string>& lines) {
 
         if (stripped.rfind("print(", 0) == 0 && stripped.back() == ')') {
             std::string expr = stripped.substr(6, stripped.size() - 7);
-            out.push_back("std::cout << " + normalize_expression(expr, imports, imported_names) + " << std::endl;");
+            auto trimmed_start = expr.find_first_not_of(' ');
+            if (trimmed_start == std::string::npos) {
+                out.push_back("std::cout << std::endl;");
+                continue;
+            }
+            auto args = split_top_level_args(expr);
+            if (args.size() == 1) {
+                out.push_back("std::cout << " + normalize_expression(args[0], imports, imported_names) + " << std::endl;");
+            } else {
+                std::string line = "std::cout";
+                for (size_t i = 0; i < args.size(); ++i) {
+                    if (i > 0) {
+                        line += " << \" \"";
+                    }
+                    line += " << " + normalize_expression(args[i], imports, imported_names);
+                }
+                line += " << std::endl;";
+                out.push_back(line);
+            }
             continue;
         }
 
@@ -581,6 +822,7 @@ bool write_cpp(const fs::path& output_path, const std::vector<std::string>& body
     std::vector<std::string> content = {
         "#include <iostream>",
         "#include <string>",
+        "#include <vector>",
         "",
     };
 

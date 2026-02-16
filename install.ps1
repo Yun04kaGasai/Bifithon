@@ -18,38 +18,55 @@ function Add-ToUserPath($pathToAdd) {
     Write-Host "Added to PATH (User): $pathToAdd"
 }
 
-if (-not (Test-Path (Join-Path $RepoPath "tools\bifc.py"))) {
-    Write-Error "Run this script inside the Bifithon repo root (tools/bifc.py not found)."
+if (-not (Test-Path (Join-Path $RepoPath "tools\bifc.cpp"))) {
+    Write-Error "Run this script inside the Bifithon repo root (tools/bifc.cpp not found)."
 }
 
-if (-not (Test-Command "python")) {
-    if (Test-Command "winget") {
-        Write-Host "Installing Python..."
-        winget install -e --id Python.Python.3.11
-    } else {
-        Write-Error "Python not found and winget is unavailable. Install Python 3.11+ manually."
+function To-MsysPath($path) {
+    $p = $path -replace "\\", "/"
+    if ($p -match "^([A-Za-z]):") {
+        $drive = $matches[1].ToLower()
+        $p = "/$drive" + $p.Substring(2)
     }
+    return $p
 }
 
-if (-not (Test-Command "g++")) {
-    if (Test-Command "winget") {
-        Write-Host "Installing MSYS2..."
-        winget install -e --id MSYS2.MSYS2
-        $msysPath = "C:\msys64\ucrt64\bin"
-        $bashPath = "C:\msys64\usr\bin\bash.exe"
-        if (Test-Path $bashPath) {
-            Write-Host "Installing GCC via pacman..."
-            & $bashPath -lc "pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-gcc"
-            Add-ToUserPath $msysPath
-        } else {
-            Write-Error "MSYS2 installed but bash.exe not found. Install GCC manually."
-        }
-    } else {
-        Write-Error "g++ not found and winget is unavailable. Install MSYS2/MinGW manually."
+$msysPath = "C:\msys64\ucrt64\bin"
+$bashPath = "C:\msys64\usr\bin\bash.exe"
+
+function Invoke-Msys($command) {
+    & $bashPath -lc "export MSYSTEM=UCRT64; export PATH=/ucrt64/bin:/usr/bin; $command"
+}
+if (Test-Command "winget" -and -not (Test-Path $bashPath)) {
+    Write-Host "Installing MSYS2..."
+    winget install -e --id MSYS2.MSYS2
+}
+
+if (Test-Path $bashPath) {
+    Write-Host "Updating pacman and installing GCC, wxWidgets, CMake..."
+    Invoke-Msys "pacman -Syu --noconfirm"
+    Invoke-Msys "pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-wxWidgets mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make"
+    Add-ToUserPath $msysPath
+} else {
+    if (-not (Test-Command "g++")) {
+        Write-Error "g++ not found and MSYS2 is unavailable. Install MSYS2/MinGW manually."
     }
+    if (-not (Test-Command "cmake")) {
+        Write-Error "cmake not found. Install CMake manually."
+    }
+    Write-Error "wxWidgets not found. Install wxWidgets and try again."
 }
 
-Write-Host "Building C++ compiler..."
-& g++ -std=c++17 -O2 "tools\bifc.cpp" -o "tools\bifc.exe"
+$bashPath = "C:\msys64\usr\bin\bash.exe"
+if (Test-Path $bashPath) {
+    $msysRepo = To-MsysPath $RepoPath
+    Write-Host "Building C++ compiler..."
+    Invoke-Msys "cd $msysRepo && g++ -std=c++17 -O2 tools/bifc.cpp -o tools/bifc.exe"
 
-Write-Host "Done. You can run: python ide\bifide.py"
+    Write-Host "Building C++ IDE..."
+    Invoke-Msys "cd $msysRepo/ide && cmake -S . -B build && cmake --build build"
+
+    Write-Host "Done. Run: ide\\build\\bifide.exe"
+} else {
+    Write-Error "bash.exe not found. Install MSYS2 and try again."
+}

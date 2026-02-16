@@ -35,6 +35,145 @@ def strip_comment(line: str) -> str:
     return "".join(out)
 
 
+def split_top_level_args(content: str):
+    args = []
+    current = []
+    depth = 0
+    in_string = False
+    string_char = ""
+    escaped = False
+
+    for ch in content:
+        if in_string:
+            current.append(ch)
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == string_char:
+                in_string = False
+            continue
+
+        if ch in ("\"", "'"):
+            in_string = True
+            string_char = ch
+            current.append(ch)
+            continue
+
+        if ch == "(":
+            depth += 1
+            current.append(ch)
+            continue
+        if ch == ")":
+            depth -= 1
+            current.append(ch)
+            continue
+
+        if ch == "," and depth == 0:
+            arg = "".join(current).strip()
+            if arg:
+                args.append(arg)
+            current = []
+            continue
+
+        current.append(ch)
+
+    arg = "".join(current).strip()
+    if arg:
+        args.append(arg)
+
+    return args
+
+
+def rewrite_logic_functions(expr: str) -> str:
+    def parse_call(start_index: int):
+        depth = 0
+        in_string = False
+        string_char = ""
+        escaped = False
+        i = start_index
+        while i < len(expr):
+            ch = expr[i]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == string_char:
+                    in_string = False
+                i += 1
+                continue
+
+            if ch in ("\"", "'"):
+                in_string = True
+                string_char = ch
+                i += 1
+                continue
+
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    return expr[start_index + 1 : i], i
+            i += 1
+        return None, -1
+
+    out = []
+    in_string = False
+    string_char = ""
+    escaped = False
+    i = 0
+
+    while i < len(expr):
+        ch = expr[i]
+        if in_string:
+            out.append(ch)
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == string_char:
+                in_string = False
+            i += 1
+            continue
+
+        if ch in ("\"", "'"):
+            in_string = True
+            string_char = ch
+            out.append(ch)
+            i += 1
+            continue
+
+        matched = False
+        for name in ("and", "or", "not"):
+            token = f"{name}("
+            if expr.startswith(token, i) and (i == 0 or not (expr[i - 1].isalnum() or expr[i - 1] == "_")):
+                content, end_index = parse_call(i + len(name))
+                if end_index == -1 or content is None:
+                    break
+                args = split_top_level_args(content)
+                if name == "not" and len(args) == 1:
+                    out.append(f"(!({args[0]}))")
+                elif name == "and" and len(args) >= 2:
+                    out.append("(" + " && ".join(f"({arg})" for arg in args) + ")")
+                elif name == "or" and len(args) >= 2:
+                    out.append("(" + " || ".join(f"({arg})" for arg in args) + ")")
+                else:
+                    out.append(expr[i : end_index + 1])
+                i = end_index + 1
+                matched = True
+                break
+
+        if matched:
+            continue
+
+        out.append(ch)
+        i += 1
+
+    return "".join(out)
+
+
 def replace_keywords(expr: str) -> str:
     replacements = {
         "and": "&&",
@@ -303,6 +442,7 @@ def replace_imported_names(expr: str, imported_names) -> str:
 
 
 def normalize_expression(expr: str, modules=None, imported_names=None) -> str:
+    expr = rewrite_logic_functions(expr)
     expr = replace_keywords(expr)
     expr = replace_input_calls(expr)
     if modules:
@@ -360,6 +500,25 @@ def transpile_bif(lines):
             raise ValueError(f"Line {lineno}: Expected indented block.")
 
         stripped = line.strip()
+        if stripped.startswith("for ") and stripped.endswith(":"):
+            header = stripped[4:-1].strip()
+            if " in " not in header:
+                raise ValueError(f"Line {lineno}: Invalid for-loop syntax.")
+            name, iterable = header.split(" in ", 1)
+            name = name.strip()
+            iterable = iterable.strip()
+            if not name or not (name[0].isalpha() or name[0] == "_"):
+                raise ValueError(f"Line {lineno}: Invalid variable name.")
+            if not all(ch.isalnum() or ch == "_" for ch in name):
+                raise ValueError(f"Line {lineno}: Invalid variable name.")
+            items = split_top_level_args(iterable)
+            if not items:
+                raise ValueError(f"Line {lineno}: Empty for-loop iterable.")
+            normalized = [normalize_expression(item, imports, imported_names) for item in items]
+            out.append(f"for (auto {name} : std::vector<double>{{{', '.join(normalized)}}}) {{")
+            expect_indent = True
+            continue
+
 
         if stripped.startswith("import "):
             module_name = stripped[len("import ") :].strip()
@@ -404,7 +563,19 @@ def transpile_bif(lines):
 
         if stripped.startswith("print(") and stripped.endswith(")"):
             expr = stripped[6:-1].strip()
-            out.append(f"std::cout << {normalize_expression(expr, imports, imported_names)} << std::endl;")
+            if not expr:
+                out.append("std::cout << std::endl;")
+                continue
+            args = split_top_level_args(expr)
+            if len(args) == 1:
+                out.append(f"std::cout << {normalize_expression(args[0], imports, imported_names)} << std::endl;")
+            else:
+                parts = []
+                for index, arg in enumerate(args):
+                    if index > 0:
+                        parts.append('" "')
+                    parts.append(normalize_expression(arg, imports, imported_names))
+                out.append("std::cout << " + " << ".join(parts) + " << std::endl;")
             continue
 
         assignment = split_assignment(stripped)
@@ -446,6 +617,7 @@ def write_cpp(output_path: str, body_lines, imports):
     content = [
         "#include <iostream>",
         "#include <string>",
+        "#include <vector>",
         "",
     ]
 
