@@ -1,0 +1,3 @@
+C:/Users/Kare0/Documents/GitHub/Bifithon/ide/build/CMakeFiles/bifide.dir
+C:/Users/Kare0/Documents/GitHub/Bifithon/ide/build/CMakeFiles/edit_cache.dir
+C:/Users/Kare0/Documents/GitHub/Bifithon/ide/build/CMakeFiles/rebuild_cache.dir

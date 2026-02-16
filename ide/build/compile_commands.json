@@ -1,0 +1,8 @@
+[
+{
+  "directory": "C:/Users/Kare0/Documents/GitHub/Bifithon/ide/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\c++.exe -DWXUSINGDLL -D__WXMSW__ -isystem C:/msys64/ucrt64/lib/wx/include/msw-unicode-3.2 -isystem C:/msys64/ucrt64/include/wx-3.2 -std=gnu++17 -o CMakeFiles\\bifide.dir\\bifide.cpp.obj -c C:\\Users\\Kare0\\Documents\\GitHub\\Bifithon\\ide\\bifide.cpp",
+  "file": "C:/Users/Kare0/Documents/GitHub/Bifithon/ide/bifide.cpp",
+  "output": "C:/Users/Kare0/Documents/GitHub/Bifithon/ide/build/CMakeFiles/bifide.dir/bifide.cpp.obj"
+}
+]

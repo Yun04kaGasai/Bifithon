@@ -1,4 +1,11 @@
 {
   "cmake.cmakePath": "C:\\msys64\\ucrt64\\bin\\cmake.exe",
-  "cmake.sourceDirectory": "C:/Users/Kare0/Documents/GitHub/Bifithon/ide"
+  "cmake.sourceDirectory": "C:/Users/Kare0/Documents/GitHub/Bifithon/ide",
+  "cmake.generator": "MinGW Makefiles",
+  "cmake.configureSettings": {
+    "CMAKE_MAKE_PROGRAM": "C:/msys64/ucrt64/bin/mingw32-make.exe"
+  },
+  "cmake.configureArgs": [
+    "-DwxWidgets_CONFIG_EXECUTABLE=C:/msys64/ucrt64/bin/wx-config-3.2"
+  ]
 }

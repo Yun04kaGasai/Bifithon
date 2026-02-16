@@ -148,7 +148,8 @@ private:
 
     void OnSave(wxCommandEvent&) {
         if (currentPath_.empty()) {
-            OnSaveAs(wxCommandEvent());
+            wxCommandEvent dummy;
+            OnSaveAs(dummy);
             return;
         }
         SaveFile(currentPath_);
@@ -260,8 +261,10 @@ private:
         int key = event.GetKeyCode();
         if (key == WXK_RETURN || key == WXK_NUMPAD_ENTER) {
             long pos = editor_->GetInsertionPoint();
-            long lineNo = editor_->LineFromPosition(pos);
-            wxString lineText = editor_->GetLineText(lineNo);
+            long col = 0;
+            long row = 0;
+            editor_->PositionToXY(pos, &col, &row);
+            wxString lineText = editor_->GetLineText(row);
 
             int indent = 0;
             for (wxUniChar ch : lineText) {
